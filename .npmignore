@@ -1,0 +1,32 @@
+# Development files
+example/
+.github/
+.vscode/
+.idea/
+
+# Source files (publish only build/)
+src/
+tsconfig.json
+
+# Tests
+__tests__/
+*.test.ts
+*.test.tsx
+
+# Documentation (keep README.md)
+docs/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.travis.yml
+.circleci/
+
+# Editor
+*.swp
+*.swo
+*~
+.DS_Store

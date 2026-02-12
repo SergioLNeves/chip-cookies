@@ -1,0 +1,46 @@
+{
+  "name": "expo-chip-cookies",
+  "version": "0.1.0",
+  "description": "Cookie management for React Native Expo with focus on session-based auth",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "expo-module build",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "prepare": "expo-module prepare",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module"
+  },
+  "keywords": [
+    "expo",
+    "expo-module",
+    "cookies",
+    "session",
+    "authentication",
+    "android",
+    "react-native"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SergioLNeves/chip-cookies.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SergioLNeves/chip-cookies/issues"
+  },
+  "author": "SergioLNeves",
+  "license": "MIT",
+  "homepage": "https://github.com/SergioLNeves/chip-cookies#readme",
+  "devDependencies": {
+    "expo-module-scripts": "^3.5.2",
+    "@types/react": "^18.2.0",
+    "react": "^18.2.0",
+    "react-native": "^0.73.0"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}
