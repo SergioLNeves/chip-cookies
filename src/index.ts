@@ -1,2 +1,2 @@
-export { set, get, clearAll, flush, toCookieString, createFetchWithCookies } from './ExpoChipCookies';
+export { set, get, clearAll, clear, flush, toCookieString, createFetchWithCookies, migrateToEncrypted, resetEncryption } from './ExpoChipCookies';
 export type { Cookie, CookieMap } from './ExpoChipCookies.types';

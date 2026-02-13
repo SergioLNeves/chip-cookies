@@ -1,6 +1,6 @@
 {
-  "name": "expo-chip-cookies",
-  "version": "0.1.0",
+  "name": "chip-cookies",
+  "version": "1.1.0",
   "description": "Cookie management for React Native Expo with focus on session-based auth",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -32,6 +32,13 @@
   "author": "SergioLNeves",
   "license": "MIT",
   "homepage": "https://github.com/SergioLNeves/chip-cookies#readme",
+  "files": [
+    "build/",
+    "android/",
+    "expo-module.config.json",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "expo-module-scripts": "^3.5.2",
     "@types/react": "^18.2.0",
