@@ -1,6 +1,6 @@
 {
   "name": "chip-cookies",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Cookie management for React Native Expo with focus on session-based auth",
   "main": "build/index.js",
   "types": "build/index.d.ts",

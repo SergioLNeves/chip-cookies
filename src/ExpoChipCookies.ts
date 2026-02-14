@@ -1,29 +1,58 @@
-import { NativeModulesProxy } from 'expo-modules-core';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import type { Cookie, CookieMap } from './ExpoChipCookies.types';
 
-const Module = NativeModulesProxy.ExpoChipCookies;
+const Module = requireOptionalNativeModule('ExpoChipCookies');
+
+// Fallback in-memory store: hostname → cookie name → Cookie
+const memoryStore = new Map<string, Map<string, Cookie>>();
+
+function getStoreKey(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
 
 /**
  * Define um cookie para uma URL específica.
- * O valor é automaticamente criptografado via Android Keystore (AES-256-GCM).
- * O flag `secure` é sempre forçado como true.
+ * Quando o módulo nativo está disponível, o valor é criptografado via Android Keystore (AES-256-GCM).
+ * No Expo Go, usa store in-memory como fallback.
  * @param url URL base (ex: 'https://api.example.com')
  * @param cookie Objeto cookie com name, value e propriedades opcionais
  * @returns Promise<boolean> true se o cookie foi definido com sucesso
  */
 export async function set(url: string, cookie: Cookie): Promise<boolean> {
-  return await Module.set(url, cookie);
+  if (Module) {
+    return await Module.set(url, cookie);
+  }
+  const key = getStoreKey(url);
+  if (!memoryStore.has(key)) {
+    memoryStore.set(key, new Map());
+  }
+  memoryStore.get(key)!.set(cookie.name, { ...cookie });
+  return true;
 }
 
 /**
  * Recupera todos os cookies associados a uma URL.
- * Os valores são automaticamente descriptografados.
- * Cookies adulterados são silenciosamente ignorados.
+ * Quando nativo, os valores são automaticamente descriptografados.
+ * No Expo Go, retorna do store in-memory.
  * @param url URL base (ex: 'https://api.example.com')
  * @returns Promise<CookieMap> Mapa de cookies indexado por nome
  */
 export async function get(url: string): Promise<CookieMap> {
-  return await Module.get(url);
+  if (Module) {
+    return await Module.get(url);
+  }
+  const key = getStoreKey(url);
+  const cookies = memoryStore.get(key);
+  if (!cookies) return {};
+  const result: CookieMap = {};
+  for (const [name, cookie] of cookies) {
+    result[name] = { ...cookie };
+  }
+  return result;
 }
 
 /**
@@ -31,7 +60,11 @@ export async function get(url: string): Promise<CookieMap> {
  * @returns Promise<boolean> true se os cookies foram removidos com sucesso
  */
 export async function clearAll(): Promise<boolean> {
-  return await Module.clearAll();
+  if (Module) {
+    return await Module.clearAll();
+  }
+  memoryStore.clear();
+  return true;
 }
 
 /**
@@ -40,34 +73,50 @@ export async function clearAll(): Promise<boolean> {
  * @returns Promise<boolean> true se os cookies foram removidos
  */
 export async function clear(url: string): Promise<boolean> {
-  return await Module.clear(url);
+  if (Module) {
+    return await Module.clear(url);
+  }
+  const key = getStoreKey(url);
+  memoryStore.delete(key);
+  return true;
 }
 
 /**
  * Criptografa cookies plaintext existentes para uma URL.
- * Cookies já criptografados (prefixo cc_enc_v1:) são ignorados.
+ * No Expo Go, é um no-op.
  * @param url URL cujos cookies serão migrados
  * @returns Promise<number> Número de cookies migrados
  */
 export async function migrateToEncrypted(url: string): Promise<number> {
-  return await Module.migrateToEncrypted(url);
+  if (Module) {
+    return await Module.migrateToEncrypted(url);
+  }
+  return 0;
 }
 
 /**
  * Remove todos os cookies e deleta a chave de criptografia do Keystore.
- * Usar para reset completo ou rotação de chave.
+ * No Expo Go, limpa o store in-memory.
  * @returns Promise<boolean> true se o reset foi bem-sucedido
  */
 export async function resetEncryption(): Promise<boolean> {
-  return await Module.resetEncryption();
+  if (Module) {
+    return await Module.resetEncryption();
+  }
+  memoryStore.clear();
+  return true;
 }
 
 /**
- * Força a persistência dos cookies no disco (Android)
+ * Força a persistência dos cookies no disco (Android).
+ * No Expo Go, é um no-op.
  * @returns boolean true sempre
  */
 export function flush(): boolean {
-  return Module.flush();
+  if (Module) {
+    return Module.flush();
+  }
+  return true;
 }
 
 /**
