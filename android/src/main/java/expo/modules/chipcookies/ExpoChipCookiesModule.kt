@@ -78,11 +78,9 @@ class ExpoChipCookiesModule : Module() {
             val trimmed = cookie.trim()
             val name = trimmed.split("=", limit = 2).firstOrNull()?.trim()
             if (!name.isNullOrEmpty()) {
-              // Tentar deletar em paths comuns, já que getCookie() não retorna o path
-              val paths = listOf("/", "")
-              paths.forEach { path ->
-                cookieManager.setCookie(url, "$name=; Max-Age=0; Path=$path")
-              }
+              // Deletar com e sem Path para cobrir cookies definidos em paths diferentes
+              cookieManager.setCookie(url, "$name=; Max-Age=0; Path=/")
+              cookieManager.setCookie(url, "$name=; Max-Age=0")
             }
           }
           cookieManager.flush()

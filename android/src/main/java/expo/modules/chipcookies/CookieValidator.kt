@@ -78,10 +78,15 @@ object CookieValidator {
     if (domain.contains(";") || domain.contains("\\") || domain.any { it.code < 0x20 }) {
       throw IllegalArgumentException("Cookie domain '$domain' contains invalid characters")
     }
-    if (domain.startsWith(".") || domain.endsWith(".")) {
-      throw IllegalArgumentException("Cookie domain '$domain' cannot start or end with a dot")
+    // Leading dot é permitido pela RFC 6265 (indica match de subdomínios)
+    val normalized = domain.removePrefix(".")
+    if (normalized.isEmpty()) {
+      throw IllegalArgumentException("Cookie domain '$domain' cannot be only a dot")
     }
-    if (domain.contains("..")) {
+    if (normalized.endsWith(".")) {
+      throw IllegalArgumentException("Cookie domain '$domain' cannot end with a dot")
+    }
+    if (normalized.contains("..")) {
       throw IllegalArgumentException("Cookie domain '$domain' contains consecutive dots")
     }
     return domain

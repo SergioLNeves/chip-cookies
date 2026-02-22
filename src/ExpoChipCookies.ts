@@ -134,7 +134,7 @@ export function flush(): boolean {
  */
 export function toCookieString(cookies: CookieMap): string {
   return Object.values(cookies)
-    .filter(c => c.name && c.value)
+    .filter(c => c.name != null && c.value != null)
     .map(c => `${c.name}=${c.value.replace(/[\r\n]/g, '')}`)
     .join('; ');
 }
