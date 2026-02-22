@@ -1,5 +1,5 @@
-import { createFetchWithCookies } from '../cookieFetch';
-import { set, clearAll } from '../cookieStore';
+import { createFetchWithCookies } from '../services/cookieFetch';
+import { set, clearAll } from '../services/cookieStore';
 
 const BASE_URL = 'https://api.example.com';
 

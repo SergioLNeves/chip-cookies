@@ -1,5 +1,5 @@
 import { requireOptionalNativeModule } from 'expo-modules-core';
-import type { Cookie, CookieMap } from './ExpoChipCookies.types';
+import type { Cookie, CookieMap } from '../types';
 
 const Module = requireOptionalNativeModule('ExpoChipCookies');
 

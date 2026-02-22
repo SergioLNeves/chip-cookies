@@ -1,4 +1,4 @@
-import type { CookieMap } from './ExpoChipCookies.types';
+import type { CookieMap } from '../types';
 
 /**
  * Converte um CookieMap para string no formato Cookie header

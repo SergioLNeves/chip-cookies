@@ -1,4 +1,11 @@
-import { set, get, clearAll, clear, flush, toCookieString, createFetchWithCookies, migrateToEncrypted, resetEncryption } from '../ExpoChipCookies';
+import { set, get, clearAll, clear, flush, toCookieString, createFetchWithCookies, migrateToEncrypted, resetEncryption } from '../index';
+
+jest.mock('../services/cookieStore', () => ({
+  __esModule: true,
+  ...jest.requireActual('../services/cookieStore'),
+}));
+
+import * as cookieStore from '../services/cookieStore';
 
 // Em ambiente de teste, o módulo nativo não existe (mock retorna null).
 // Todas as funções usam o fallback in-memory.
@@ -282,16 +289,13 @@ describe('createFetchWithCookies()', () => {
   });
 
   it('deve continuar requisição mesmo se get() falhar', async () => {
-    const cookieStore = require('../cookieStore');
-    const originalGetFn = cookieStore.get;
-    cookieStore.get = jest.fn().mockRejectedValueOnce(new Error('Native crash'));
+    const spy = jest.spyOn(cookieStore, 'get').mockRejectedValueOnce(new Error('Native crash'));
 
     const apiFetch = createFetchWithCookies(BASE_URL);
     await apiFetch('/endpoint');
     expect(global.fetch).toHaveBeenCalledTimes(1);
 
-    // Restaurar
-    cookieStore.get = originalGetFn;
+    spy.mockRestore();
   });
 
   it('deve aceitar input como URL object', async () => {

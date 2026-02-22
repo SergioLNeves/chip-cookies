@@ -1,4 +1,4 @@
-import { set, get, clear, clearAll, flush, migrateToEncrypted, resetEncryption } from '../cookieStore';
+import { set, get, clear, clearAll, flush, migrateToEncrypted, resetEncryption } from '../services/cookieStore';
 
 const BASE_URL = 'https://api.example.com';
 

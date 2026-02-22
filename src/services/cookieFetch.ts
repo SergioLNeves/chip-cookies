@@ -1,4 +1,4 @@
-import type { CookieFetch } from './ExpoChipCookies.types';
+import type { CookieFetch } from '../types';
 import { get } from './cookieStore';
 import { toCookieString } from './cookieSerializer';
 

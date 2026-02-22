@@ -1,4 +1,4 @@
-import { toCookieString } from '../cookieSerializer';
+import { toCookieString } from '../services/cookieSerializer';
 
 describe('toCookieString()', () => {
   it('deve converter CookieMap para formato Cookie header', () => {
