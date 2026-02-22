@@ -6,8 +6,6 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.kotlin.Promise
 import java.net.URL
-import android.util.Log
-import javax.crypto.AEADBadTagException
 
 class ExpoChipCookiesModule : Module() {
   override fun definition() = ModuleDefinition {
@@ -18,7 +16,7 @@ class ExpoChipCookiesModule : Module() {
       try {
         val cookieManager = CookieManager.getInstance()
         val domain = URL(url).host
-        val cookieString = buildCookieString(cookie, domain)
+        val cookieString = CookieSerializer.buildCookieString(cookie, domain)
 
         cookieManager.setCookie(url, cookieString)
         cookieManager.flush()
@@ -26,6 +24,8 @@ class ExpoChipCookiesModule : Module() {
         promise.resolve(true)
       } catch (e: IllegalArgumentException) {
         promise.reject("ERR_VALIDATION", e.message, e)
+      } catch (e: java.security.GeneralSecurityException) {
+        promise.reject("ERR_CRYPTO", "Encryption failed: ${e.message}", e)
       } catch (e: Exception) {
         promise.reject("ERR_SET", e.message, e)
       }
@@ -38,7 +38,7 @@ class ExpoChipCookiesModule : Module() {
         val cookieString = cookieManager.getCookie(url)
 
         val cookies = if (cookieString != null) {
-          parseCookiesWithDecryption(cookieString, url)
+          CookieSerializer.parseCookiesWithDecryption(cookieString, url)
         } else {
           emptyMap<String, Any>()
         }
@@ -121,6 +121,8 @@ class ExpoChipCookiesModule : Module() {
         }
 
         promise.resolve(migratedCount)
+      } catch (e: java.security.GeneralSecurityException) {
+        promise.reject("ERR_CRYPTO", "Migration encryption failed: ${e.message}", e)
       } catch (e: Exception) {
         promise.reject("ERR_MIGRATE", e.message, e)
       }
@@ -150,93 +152,5 @@ class ExpoChipCookiesModule : Module() {
       CookieManager.getInstance().flush()
       true
     }
-  }
-
-  /**
-   * Constrói string de cookie no formato Set-Cookie RFC 6265.
-   * Aplica validação em todos os campos e criptografia no valor.
-   * Secure é forçado sempre como true.
-   */
-  private fun buildCookieString(cookie: Map<String, Any>, domain: String): String {
-    val name = CookieValidator.validateName(
-      (cookie["name"] as? String)
-        ?: throw IllegalArgumentException("Cookie 'name' is required and must be a string")
-    )
-    val rawValue = (cookie["value"] as? String)
-      ?: throw IllegalArgumentException("Cookie 'value' is required and must be a string")
-    val sanitizedValue = CookieValidator.sanitizeValue(rawValue)
-    val encryptedValue = CookieCrypto.encrypt(sanitizedValue)
-    val parts = mutableListOf("$name=$encryptedValue")
-
-    // Domain (validado)
-    val cookieDomain = cookie["domain"] as? String ?: domain
-    parts.add("Domain=${CookieValidator.validateDomain(cookieDomain)}")
-
-    // Path (validado)
-    val path = cookie["path"] as? String ?: "/"
-    parts.add("Path=${CookieValidator.validatePath(path)}")
-
-    // Expires (validado)
-    (cookie["expires"] as? String)?.let {
-      parts.add("Expires=${CookieValidator.validateExpires(it)}")
-    }
-
-    // Max-Age
-    (cookie["maxAge"] as? Number)?.let { parts.add("Max-Age=$it") }
-
-    // Secure - forçado sempre
-    parts.add("Secure")
-
-    // HttpOnly
-    if (cookie["httpOnly"] as? Boolean == true) {
-      parts.add("HttpOnly")
-    }
-
-    // SameSite (validado)
-    (cookie["sameSite"] as? String)?.let {
-      parts.add("SameSite=${CookieValidator.validateSameSite(it)}")
-    }
-
-    return parts.joinToString("; ")
-  }
-
-  /**
-   * Parse string de cookies do CookieManager com descriptografia.
-   * Cookies adulterados (AEADBadTagException) são silenciosamente ignorados.
-   * Cookies sem prefixo cc_enc_v1: são retornados como estão (migração).
-   */
-  private fun parseCookiesWithDecryption(
-    cookieString: String,
-    url: String
-  ): Map<String, Map<String, String>> {
-    val cookies = mutableMapOf<String, Map<String, String>>()
-    val domain = URL(url).host
-
-    cookieString.split(";").forEach { cookie ->
-      val trimmed = cookie.trim()
-      val parts = trimmed.split("=", limit = 2)
-
-      if (parts.size == 2) {
-        val cookieName = parts[0].trim()
-        val cookieValue = parts[1].trim()
-
-        try {
-          val decryptedValue = CookieCrypto.decrypt(cookieValue)
-
-          cookies[cookieName] = mapOf(
-            "name" to cookieName,
-            "value" to decryptedValue,
-            "domain" to domain,
-            "path" to "/"
-          )
-        } catch (e: AEADBadTagException) {
-          Log.w("ExpoChipCookies", "Cookie '$cookieName' rejected: tampered or corrupted")
-        } catch (e: Exception) {
-          Log.w("ExpoChipCookies", "Cookie '$cookieName' decryption failed: ${e.javaClass.simpleName}")
-        }
-      }
-    }
-
-    return cookies
   }
 }

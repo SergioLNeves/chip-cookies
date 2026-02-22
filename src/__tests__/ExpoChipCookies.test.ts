@@ -282,18 +282,16 @@ describe('createFetchWithCookies()', () => {
   });
 
   it('deve continuar requisição mesmo se get() falhar', async () => {
+    const cookieStore = require('../cookieStore');
+    const originalGetFn = cookieStore.get;
+    cookieStore.get = jest.fn().mockRejectedValueOnce(new Error('Native crash'));
+
     const apiFetch = createFetchWithCookies(BASE_URL);
-
-    // Forçar get() a falhar via mock temporário
-    const expoModule = require('../ExpoChipCookies');
-    const originalGetFn = expoModule.get;
-    expoModule.get = jest.fn().mockRejectedValueOnce(new Error('Native crash'));
-
     await apiFetch('/endpoint');
     expect(global.fetch).toHaveBeenCalledTimes(1);
 
     // Restaurar
-    expoModule.get = originalGetFn;
+    cookieStore.get = originalGetFn;
   });
 
   it('deve aceitar input como URL object', async () => {
