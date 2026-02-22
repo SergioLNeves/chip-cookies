@@ -15,13 +15,13 @@ Bibliotecas existentes como `@react-native-cookies/cookies` estão deprecated, e
 ## 📦 Instalação
 
 ```bash
-npm install expo-chip-cookies
+npm install chip-cookies
 ```
 
 ou
 
 ```bash
-yarn add expo-chip-cookies
+yarn add chip-cookies
 ```
 
 **⚠️ IMPORTANTE**: Este módulo requer um dev build (não funciona com Expo Go):
@@ -36,7 +36,7 @@ npx expo run:android
 ### Definir um cookie
 
 ```typescript
-import * as ExpoChipCookies from 'expo-chip-cookies';
+import * as ExpoChipCookies from 'chip-cookies';
 
 await ExpoChipCookies.set('https://api.example.com', {
   name: 'session_id',
@@ -68,7 +68,7 @@ await ExpoChipCookies.clearAll();
 ### Fluxo de Login
 
 ```typescript
-import * as ExpoChipCookies from 'expo-chip-cookies';
+import * as ExpoChipCookies from 'chip-cookies';
 
 const API_BASE = 'https://api.example.com';
 
@@ -226,7 +226,33 @@ const cookieString = ExpoChipCookies.toCookieString(cookies);
 // "token=abc123; session_id=xyz789"
 ```
 
-### `createFetchWithCookies(baseUrl: string): FetchFunction`
+### `clear(url: string): Promise<boolean>`
+
+Remove cookies de uma URL específica (via Max-Age=0).
+
+```typescript
+await ExpoChipCookies.clear('https://api.example.com');
+```
+
+### `migrateToEncrypted(url: string): Promise<number>`
+
+Criptografa cookies plaintext existentes para uma URL.
+**Nota:** Atributos originais (Domain, HttpOnly, SameSite) não são preservados — cookies migrados ficam com Path=/ e Secure. Redefina-os com `set()` se necessário.
+
+```typescript
+const migrated = await ExpoChipCookies.migrateToEncrypted('https://api.example.com');
+console.log(`${migrated} cookies migrados para criptografia`);
+```
+
+### `resetEncryption(): Promise<boolean>`
+
+Remove todos os cookies e deleta a chave de criptografia do Android Keystore. Use quando precisar resetar completamente o estado de criptografia.
+
+```typescript
+await ExpoChipCookies.resetEncryption();
+```
+
+### `createFetchWithCookies(baseUrl: string): CookieFetch`
 
 Cria uma função fetch que automaticamente inclui cookies nas requisições.
 

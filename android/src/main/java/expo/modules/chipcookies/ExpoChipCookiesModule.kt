@@ -6,6 +6,7 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.kotlin.Promise
 import java.net.URL
+import android.util.Log
 import javax.crypto.AEADBadTagException
 
 class ExpoChipCookiesModule : Module() {
@@ -77,8 +78,11 @@ class ExpoChipCookiesModule : Module() {
             val trimmed = cookie.trim()
             val name = trimmed.split("=", limit = 2).firstOrNull()?.trim()
             if (!name.isNullOrEmpty()) {
-              // Setar com Max-Age=0 deleta o cookie
-              cookieManager.setCookie(url, "$name=; Max-Age=0; Path=/")
+              // Tentar deletar em paths comuns, já que getCookie() não retorna o path
+              val paths = listOf("/", "")
+              paths.forEach { path ->
+                cookieManager.setCookie(url, "$name=; Max-Age=0; Path=$path")
+              }
             }
           }
           cookieManager.flush()
@@ -129,10 +133,14 @@ class ExpoChipCookiesModule : Module() {
       try {
         val cookieManager = CookieManager.getInstance()
 
-        cookieManager.removeAllCookies(ValueCallback { _ ->
-          CookieCrypto.deleteKey()
-          cookieManager.flush()
-          promise.resolve(true)
+        cookieManager.removeAllCookies(ValueCallback { success ->
+          if (success) {
+            CookieCrypto.deleteKey()
+            cookieManager.flush()
+            promise.resolve(true)
+          } else {
+            promise.reject("ERR_RESET", "Failed to clear cookies before key deletion", null)
+          }
         })
       } catch (e: Exception) {
         promise.reject("ERR_RESET", e.message, e)
@@ -152,8 +160,12 @@ class ExpoChipCookiesModule : Module() {
    * Secure é forçado sempre como true.
    */
   private fun buildCookieString(cookie: Map<String, Any>, domain: String): String {
-    val name = CookieValidator.validateName(cookie["name"] as String)
-    val rawValue = cookie["value"] as String
+    val name = CookieValidator.validateName(
+      (cookie["name"] as? String)
+        ?: throw IllegalArgumentException("Cookie 'name' is required and must be a string")
+    )
+    val rawValue = (cookie["value"] as? String)
+      ?: throw IllegalArgumentException("Cookie 'value' is required and must be a string")
     val sanitizedValue = CookieValidator.sanitizeValue(rawValue)
     val encryptedValue = CookieCrypto.encrypt(sanitizedValue)
     val parts = mutableListOf("$name=$encryptedValue")
@@ -166,8 +178,10 @@ class ExpoChipCookiesModule : Module() {
     val path = cookie["path"] as? String ?: "/"
     parts.add("Path=${CookieValidator.validatePath(path)}")
 
-    // Expires
-    (cookie["expires"] as? String)?.let { parts.add("Expires=$it") }
+    // Expires (validado)
+    (cookie["expires"] as? String)?.let {
+      parts.add("Expires=${CookieValidator.validateExpires(it)}")
+    }
 
     // Max-Age
     (cookie["maxAge"] as? Number)?.let { parts.add("Max-Age=$it") }
@@ -217,10 +231,10 @@ class ExpoChipCookiesModule : Module() {
             "domain" to domain,
             "path" to "/"
           )
-        } catch (_: AEADBadTagException) {
-          // Cookie adulterado - pular silenciosamente
-        } catch (_: Exception) {
-          // Erro de descriptografia - pular silenciosamente
+        } catch (e: AEADBadTagException) {
+          Log.w("ExpoChipCookies", "Cookie '$cookieName' rejected: tampered or corrupted")
+        } catch (e: Exception) {
+          Log.w("ExpoChipCookies", "Cookie '$cookieName' decryption failed: ${e.javaClass.simpleName}")
         }
       }
     }

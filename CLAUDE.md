@@ -218,6 +218,6 @@ Package excludes: `src/`, `example/`, `*.md` (except README), `tsconfig.json`
 ## Additional Documentation
 
 - `README.md` - Complete API documentation and usage guide
-- `QUICKSTART.md` - Integration guide for using in other projects
-- `EXAMPLES.md` - Advanced usage patterns (refresh tokens, interceptors, etc.)
-- `BUILD_AND_PUBLISH.md` - Detailed publishing instructions
+- `.claude/QUICKSTART.md` - Integration guide for using in other projects
+- `.claude/EXAMPLES.md` - Advanced usage patterns (refresh tokens, interceptors, etc.)
+- `.claude/BUILD_AND_PUBLISH.md` - Detailed publishing instructions

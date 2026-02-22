@@ -1,5 +1,5 @@
 import { requireOptionalNativeModule } from 'expo-modules-core';
-import type { Cookie, CookieMap } from './ExpoChipCookies.types';
+import type { Cookie, CookieFetch, CookieMap } from './ExpoChipCookies.types';
 
 const Module = requireOptionalNativeModule('ExpoChipCookies');
 
@@ -25,6 +25,12 @@ function getStoreKey(url: string): string {
 export async function set(url: string, cookie: Cookie): Promise<boolean> {
   if (Module) {
     return await Module.set(url, cookie);
+  }
+  if (!cookie.name || typeof cookie.name !== 'string') {
+    throw new Error("Cookie 'name' is required and must be a string");
+  }
+  if (typeof cookie.value !== 'string') {
+    throw new Error("Cookie 'value' must be a string");
   }
   const key = getStoreKey(url);
   if (!memoryStore.has(key)) {
@@ -83,6 +89,8 @@ export async function clear(url: string): Promise<boolean> {
 
 /**
  * Criptografa cookies plaintext existentes para uma URL.
+ * NOTA: Atributos originais (Domain, HttpOnly, SameSite) não são preservados —
+ * cookies migrados ficam com Path=/ e Secure. Redefina-os com set() se necessário.
  * No Expo Go, é um no-op.
  * @param url URL cujos cookies serão migrados
  * @returns Promise<number> Número de cookies migrados
@@ -110,7 +118,7 @@ export async function resetEncryption(): Promise<boolean> {
 /**
  * Força a persistência dos cookies no disco (Android).
  * No Expo Go, é um no-op.
- * @returns boolean true sempre
+ * @returns boolean — sempre true (flush do Android não reporta falhas)
  */
 export function flush(): boolean {
   if (Module) {
@@ -126,7 +134,8 @@ export function flush(): boolean {
  */
 export function toCookieString(cookies: CookieMap): string {
   return Object.values(cookies)
-    .map(c => `${c.name}=${c.value}`)
+    .filter(c => c.name && c.value)
+    .map(c => `${c.name}=${c.value.replace(/[\r\n]/g, '')}`)
     .join('; ');
 }
 
@@ -161,7 +170,7 @@ function isSameDomain(baseHost: string, requestHost: string): boolean {
  * const apiFetch = createFetchWithCookies('https://api.example.com');
  * const response = await apiFetch('/user/profile');
  */
-export function createFetchWithCookies(baseUrl: string) {
+export function createFetchWithCookies(baseUrl: string): CookieFetch {
   const baseHostname = getHostname(baseUrl);
 
   return async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -181,8 +190,13 @@ export function createFetchWithCookies(baseUrl: string) {
 
     // Só anexar cookies se domínios são compatíveis
     if (baseHostname && requestHostname && isSameDomain(baseHostname, requestHostname)) {
-      const cookies = await get(baseUrl);
-      const cookieString = toCookieString(cookies);
+      let cookieString = '';
+      try {
+        const cookies = await get(baseUrl);
+        cookieString = toCookieString(cookies);
+      } catch {
+        // Falha ao recuperar cookies — continua requisição sem cookies
+      }
 
       if (cookieString) {
         headers.set('Cookie', cookieString);

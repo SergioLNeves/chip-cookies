@@ -9,6 +9,9 @@ package expo.modules.chipcookies
  */
 object CookieValidator {
 
+  private const val MAX_NAME_LENGTH = 256
+  private const val MAX_VALUE_LENGTH = 4096
+
   // RFC 6265 token: qualquer CHAR exceto CTLs e separadores
   // Separadores: ( ) < > @ , ; : \ " / [ ] ? = { } SP HT
   private val INVALID_NAME_CHARS = Regex("[\\x00-\\x1f\\x7f \\t\"(),/:;<=>?@\\[\\\\\\]{}]")
@@ -24,6 +27,11 @@ object CookieValidator {
     if (name.isEmpty()) {
       throw IllegalArgumentException("Cookie name cannot be empty")
     }
+    if (name.length > MAX_NAME_LENGTH) {
+      throw IllegalArgumentException(
+        "Cookie name exceeds maximum length of $MAX_NAME_LENGTH characters"
+      )
+    }
     if (INVALID_NAME_CHARS.containsMatchIn(name)) {
       throw IllegalArgumentException(
         "Cookie name '$name' contains invalid characters (CTLs or separators)"
@@ -38,6 +46,11 @@ object CookieValidator {
    * Chars válidos passam inalterados — JWTs (Base64url) passam direto.
    */
   fun sanitizeValue(value: String): String {
+    if (value.length > MAX_VALUE_LENGTH) {
+      throw IllegalArgumentException(
+        "Cookie value exceeds maximum length of $MAX_VALUE_LENGTH characters"
+      )
+    }
     if (!INVALID_VALUE_CHARS.containsMatchIn(value)) {
       return value
     }
@@ -65,6 +78,12 @@ object CookieValidator {
     if (domain.contains(";") || domain.contains("\\") || domain.any { it.code < 0x20 }) {
       throw IllegalArgumentException("Cookie domain '$domain' contains invalid characters")
     }
+    if (domain.startsWith(".") || domain.endsWith(".")) {
+      throw IllegalArgumentException("Cookie domain '$domain' cannot start or end with a dot")
+    }
+    if (domain.contains("..")) {
+      throw IllegalArgumentException("Cookie domain '$domain' contains consecutive dots")
+    }
     return domain
   }
 
@@ -81,6 +100,18 @@ object CookieValidator {
       throw IllegalArgumentException("Cookie path '$path' contains invalid characters")
     }
     return path
+  }
+
+  /**
+   * Valida atributo Expires de cookie.
+   * Rejeita valores com chars que poderiam causar injection (semicolon, CTLs).
+   * @throws IllegalArgumentException se o valor contém caracteres inválidos
+   */
+  fun validateExpires(expires: String): String {
+    if (expires.contains(";") || expires.any { it.code < 0x20 }) {
+      throw IllegalArgumentException("Cookie expires contains invalid characters")
+    }
+    return expires
   }
 
   /**

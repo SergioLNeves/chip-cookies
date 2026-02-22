@@ -16,3 +16,5 @@ export interface Cookie {
 }
 
 export type CookieMap = Record<string, Cookie>;
+
+export type CookieFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
